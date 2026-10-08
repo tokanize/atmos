@@ -36,6 +36,9 @@ type TagContext struct {
 	// handler was invoked with -- used by handlers (e.g. !append) that must
 	// resolve nested tags inside content they rewrite before finishing.
 	Walk func(node *yaml.Node) error
+	// WalkIn is Walk with a different file context: used by !include to
+	// resolve tags nested inside an included file relative to that file.
+	WalkIn func(node *yaml.Node, file string) error
 }
 
 // TagHandler resolves a single recognized YAML tag on node in place
@@ -81,6 +84,9 @@ func walkYAMLTags(ctx TagContext, node *yaml.Node, policy TagWalkPolicy) error {
 
 	ctx.Walk = func(n *yaml.Node) error {
 		return walkYAMLTags(ctx, n, policy)
+	}
+	ctx.WalkIn = func(n *yaml.Node, inFile string) error {
+		return WalkYAMLTags(atmosConfig, n, inFile, policy)
 	}
 
 	var after func()
@@ -222,7 +228,7 @@ func handleAppendTag(ctx TagContext, node *yaml.Node, _ string) (bool, error) {
 // by delegating straight to the existing leaf functions -- shared verbatim
 // between the stack-manifest and scaffold-manifest policies.
 func handleIncludeTag(ctx TagContext, node *yaml.Node, val string) (bool, error) {
-	return false, ProcessIncludeTag(ctx.AtmosConfig, node, val, ctx.File)
+	return ProcessIncludeTagWalked(ctx.AtmosConfig, node, val, ctx.File, ctx.WalkIn)
 }
 
 func handleIncludeRawTag(ctx TagContext, node *yaml.Node, val string) (bool, error) {
