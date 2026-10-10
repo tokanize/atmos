@@ -39,11 +39,12 @@ func ProcessIncludeTag(
 }
 
 // ProcessIncludeTagWalked is ProcessIncludeTag for callers that own a tag
-// walker: when the include is a local YAML file evaluated with `| eval`, the
+// walker: when the include is a YAML file evaluated with `| eval`, the
 // spliced subtree is walked through walkIn with the included file as its
-// context, so a nested `!include ./x` resolves relative to that file rather
-// than the outer manifest. The returned bool reports that the subtree has
-// already been walked and the caller must not recurse into it again.
+// context for local files and the outer manifest for remote files, so a
+// nested `!include ./x` resolves relative to the appropriate local directory.
+// The returned bool reports that the subtree has already been walked and the
+// caller must not recurse into it again.
 func ProcessIncludeTagWalked(
 	atmosConfig *schema.AtmosConfiguration,
 	node *yaml.Node,
@@ -60,8 +61,8 @@ func ProcessIncludeTagWalked(
 type includeMode struct {
 	// forceRaw returns the file text verbatim (!include.raw).
 	forceRaw bool
-	// walkIn, when set, walks an evaluated local YAML include with the
-	// included file as the tag-resolution context.
+	// walkIn, when set, walks an evaluated YAML include with its local file
+	// or the outer manifest as the tag-resolution context.
 	walkIn func(node *yaml.Node, file string) error
 }
 
@@ -148,7 +149,13 @@ func processIncludeTagInternal(
 			}
 			// Nested paths inside remote content keep the outer manifest as
 			// their context; there is no local directory to resolve against.
-			return false, spliceYAMLText(atmosConfig, node, text, includeSplice{query: includeQuery, eval: evalFunctions, val: val, file: file})
+			if err := spliceYAMLText(atmosConfig, node, text, includeSplice{query: includeQuery, eval: evalFunctions, val: val, file: file}); err != nil {
+				return false, err
+			}
+			if evalFunctions && mode.walkIn != nil {
+				return true, mode.walkIn(node, file)
+			}
+			return false, nil
 		}
 		// Process as remote if it's a URL or go-getter detects it as remote
 		res, err = processRemoteFile(atmosConfig, includeFile, forceRaw)

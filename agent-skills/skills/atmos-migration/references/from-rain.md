@@ -92,7 +92,8 @@ components:
       path: template.yaml          # Code.S3Bucket: !Ref ArtifactBucket, Code.S3Key: !Ref ArtifactKey
       vars:
         artifact_bucket: acme-lambda-artifacts
-        artifact_key: lambda/releases/v1/handler.zip
+        release: v1 # Change this value for each release.
+        artifact_key: "lambda/releases/{{ .vars.release }}/handler.zip"
       parameters:
         ArtifactBucket: "{{ .vars.artifact_bucket }}"
         ArtifactKey: "{{ .vars.artifact_key }}"

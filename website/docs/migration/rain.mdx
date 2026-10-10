@@ -273,6 +273,9 @@ components:
   "aws/cloudformation":
     app:
       path: template.yaml
+      vars:
+        stage: dev
+        release: v1 # Change this value for each release.
       parameters:
         WorkerBucket: "acme-plat-cfn-artifacts-{{ .vars.stage }}"
         WorkerKey: "lambda/worker-{{ .vars.release }}.zip"
