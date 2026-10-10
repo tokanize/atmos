@@ -16,6 +16,7 @@ Checking an upload source only by pathname left a gap before opening it. HTTP re
 - Restrict automatic expectation polling to supported safe HTTP methods and preserve explicit retry rules.
 - Discard style-opening sequences that apply only to trimmed padding while retaining needed closing sequences.
 - Fall back when the preferred design-preview example is absent, including an empty example collection.
+- Remove duplicate expanded-player CSS declarations while preserving the final fullscreen styles.
 
 ## Validation
 
@@ -25,6 +26,8 @@ Checking an upload source only by pathname left a gap before opening it. HTTP re
 - The combined stack passes CloudFormation command/component race tests and changed-code lint with zero issues.
 - All 57 navigation tests, 40 website prebuild tests, and the combined website build pass.
 - The combined Floci lifecycle passes initial deployment, unchanged redeployment, changed release, archive verification, HTTP 200 and response assertions, and cleanup.
+
+- PostCSS parsing and computed declaration comparisons verify the CSS cleanup preserves the expanded, fullscreen, player, and preformatted styles.
 
 ## Follow-ups
 
