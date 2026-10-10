@@ -454,6 +454,71 @@ func TestTrimRightSpaces(t *testing.T) {
 			expected: "\x1b[31mhello\x1b[0m",
 		},
 		{
+			name:     "padding only color does not leak",
+			input:    "hello   \x1b[31m  ",
+			expected: "hello",
+		},
+		{
+			name:     "padding only color before reset",
+			input:    "\x1b[1mhello   \x1b[31m  \x1b[0m",
+			expected: "\x1b[1mhello\x1b[0m",
+		},
+		{
+			name:     "combined reset and new style",
+			input:    "\x1b[1mhello \x1b[22;31m ",
+			expected: "\x1b[1mhello\x1b[22m",
+		},
+		{
+			name:     "RGB channels are not reset parameters",
+			input:    "hello \x1b[38;2;0;22;49;4m ",
+			expected: "hello",
+		},
+		{
+			name:     "indexed color followed by reset",
+			input:    "hello \x1b[48;5;22;39m ",
+			expected: "hello\x1b[39m",
+		},
+		{
+			name:     "colon color followed by reset",
+			input:    "hello \x1b[38:2::0:22:49;0m ",
+			expected: "hello\x1b[0m",
+		},
+		{
+			name:     "truncated extended color",
+			input:    "hello \x1b[38m ",
+			expected: "hello",
+		},
+		{
+			name:     "unknown extended color layout",
+			input:    "hello \x1b[38;9;0m ",
+			expected: "hello",
+		},
+		{
+			name:     "default font closes alternate font",
+			input:    "\x1b[11mhello \x1b[10m ",
+			expected: "\x1b[11mhello\x1b[10m",
+		},
+		{
+			name:     "proportional spacing closes after padding",
+			input:    "\x1b[26mhello \x1b[50m ",
+			expected: "\x1b[26mhello\x1b[50m",
+		},
+		{
+			name:     "colon underline reset without padding color",
+			input:    "\x1b[4:3mhello \x1b[4:0;31m ",
+			expected: "\x1b[4:3mhello\x1b[4:0m",
+		},
+		{
+			name:     "empty reset parameter",
+			input:    "hello \x1b[m ",
+			expected: "hello\x1b[m",
+		},
+		{
+			name:     "non SGR terminal control preserved",
+			input:    "hello \x1b[K ",
+			expected: "hello\x1b[K",
+		},
+		{
 			name:     "reset after colored padding",
 			input:    "\x1b[31mhello   \x1b[0m",
 			expected: "\x1b[31mhello\x1b[0m",
@@ -731,6 +796,14 @@ func TestTrimTrailingBareANSI(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := trimTrailingBareANSI(tt.input)
 			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestTrailingResetsMalformedInput(t *testing.T) {
+	for _, sequence := range []string{"", "m", "[m", "\x1b", "\x1b[", "\x1b[31", "\x1b[38;2;0"} {
+		t.Run(sequence, func(t *testing.T) {
+			assert.Equal(t, sequence, trailingResets(sequence))
 		})
 	}
 }

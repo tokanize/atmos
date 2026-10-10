@@ -2,6 +2,7 @@ package target
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -141,13 +142,29 @@ func localPublishFile(filename, name string, info fs.FileInfo) (PublishFile, err
 		return PublishFile{}, err
 	}
 	return PublishFile{Name: name, Size: info.Size(), Open: func() (io.ReadSeekCloser, error) {
-		current, err := os.Lstat(filename)
-		if err != nil {
-			return nil, err
-		}
-		if !current.Mode().IsRegular() || !os.SameFile(info, current) || current.Size() != info.Size() {
-			return nil, errUtils.ErrPublishSource
-		}
-		return os.Open(filename)
+		return openLocalPublishFile(filename, info, os.Open)
 	}}, nil
+}
+
+func openLocalPublishFile(filename string, info fs.FileInfo, open func(string) (*os.File, error)) (io.ReadSeekCloser, error) {
+	current, err := os.Lstat(filename)
+	if err != nil {
+		return nil, errors.Join(errUtils.ErrPublishSource, err)
+	}
+	if !current.Mode().IsRegular() || !os.SameFile(info, current) || current.Size() != info.Size() {
+		return nil, errUtils.ErrPublishSource
+	}
+	file, err := open(filename)
+	if err != nil {
+		return nil, errors.Join(errUtils.ErrPublishSource, err)
+	}
+	// Validate the opened handle: the pathname can change after Lstat and before Open.
+	current, err = file.Stat()
+	if err != nil {
+		return nil, errors.Join(errUtils.ErrPublishSource, err, file.Close())
+	}
+	if !current.Mode().IsRegular() || !os.SameFile(info, current) || current.Size() != info.Size() {
+		return nil, errors.Join(errUtils.ErrPublishSource, file.Close())
+	}
+	return file, nil
 }

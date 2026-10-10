@@ -206,7 +206,7 @@ func (h *HTTPHandler) Execute(ctx context.Context, step *schema.WorkflowStep, va
 		return reqErr
 	}
 
-	retryErr := retry.WithPredicate(ctx, step.Retry, doRequest, shouldRetryHTTP(step.Retry, expect))
+	retryErr := retry.WithPredicate(ctx, step.Retry, doRequest, shouldRetryHTTP(step.Retry, expect, req.method))
 
 	if lastResult != nil {
 		lastResult.WithMetadata(metaAttempts, attempts).
@@ -303,12 +303,15 @@ func (e *httpExpect) check(statusCode int, body string) failureReason {
 
 // shouldRetryHTTP builds the retry predicate: retry on transport errors, 5xx, 429,
 // anything matching the configured retry.conditions regexes, and -- when the
-// step declared its own `expect:` -- any response that fails that expectation.
+// step declared its own `expect:` -- safe-method responses that fail it.
 // The last rule is what makes an `http` step with `expect` and `retry` a poller:
 // a readiness endpoint that returns 404 or an unexpected body while warming up is
 // retried until it satisfies the expectation or `max_attempts` runs out. Without
-// an explicit `expect`, a 4xx still fails fast.
-func shouldRetryHTTP(cfg *schema.RetryConfig, expect *httpExpect) func(error) bool {
+// an explicit `expect`, a 4xx still fails fast. Write methods do not gain
+// automatic expectation retries: a successful response may already represent
+// a completed write, even if its status or body differs from the expectation.
+func shouldRetryHTTP(cfg *schema.RetryConfig, expect *httpExpect, method string) func(error) bool {
+	safeMethod := isHTTPPollingMethod(method)
 	return func(err error) bool {
 		var httpErr *httpError
 		if !errors.As(err, &httpErr) {
@@ -320,11 +323,17 @@ func shouldRetryHTTP(cfg *schema.RetryConfig, expect *httpExpect) func(error) bo
 		if httpErr.statusCode >= httpServerErrorMin || httpErr.statusCode == http.StatusTooManyRequests {
 			return true
 		}
-		if expect.explicit() && (httpErr.reason == reasonStatus || httpErr.reason == reasonResponse) {
+		if safeMethod && expect.explicit() && (httpErr.reason == reasonStatus || httpErr.reason == reasonResponse) {
 			return true
 		}
 		return matchesRetryConditions(cfg, httpErr)
 	}
+}
+
+// isHTTPPollingMethod identifies supported methods whose expectation failures
+// can be polled without repeating a write.
+func isHTTPPollingMethod(method string) bool {
+	return method == http.MethodGet || method == http.MethodHead || method == http.MethodOptions
 }
 
 // explicit reports whether the step declared success criteria of its own
@@ -390,7 +399,7 @@ func buildHTTPError(step *schema.WorkflowStep, req *httpRequest, retryErr error,
 			WithContext("url", sanitizeHTTPDestination(req.url)).
 			WithContext("status", httpErr.status).
 			WithContext("attempts", strconv.Itoa(attempts)).
-			WithHint("Adjust 'expect.response' or fix the endpoint so the body matches; with a retry policy the step keeps polling until it does").
+			WithHint("Adjust 'expect.response' or fix the endpoint so the body matches; GET, HEAD, and OPTIONS can poll with a retry policy").
 			Err()
 	}
 
@@ -400,7 +409,7 @@ func buildHTTPError(step *schema.WorkflowStep, req *httpRequest, retryErr error,
 		WithContext("url", sanitizeHTTPDestination(req.url)).
 		WithContext("status", httpErr.status).
 		WithContext("attempts", strconv.Itoa(attempts)).
-		WithHint("Set 'expect.status' to the codes the endpoint returns, or add a retry policy; with expect configured, the step retries until the expectation is met or max_attempts is reached").
+		WithHint("Set 'expect.status' to the codes the endpoint returns; GET, HEAD, and OPTIONS can poll with a retry policy").
 		Err()
 }
 

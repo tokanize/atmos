@@ -8,9 +8,10 @@ import treeData from "@generated/file-browser/examples/file-browser-tree-example
 import optionsData from "@generated/file-browser/examples/file-browser-options-examples.json";
 
 export default function ExampleDetailDesign() {
-  const example = (treeData as ExamplesTree).examples.find(
-    (item) => item.name === "quick-start-simple",
-  )!;
+  const { examples } = treeData as ExamplesTree;
+  const example =
+    examples.find((item) => item.name === "quick-start-simple") ?? examples[0];
+  if (!example) return null;
   return (
     <ExampleDetailPage
       example={example}
