@@ -44,6 +44,7 @@ const (
 	yamlMapTag = "!!map"
 )
 
+// init makes CloudFormation intrinsics and Rain migration hints available to the shared YAML walker.
 func init() {
 	RegisterIntrinsicRewriters()
 	u.RegisterForeignTagHint(RainDirectiveHint)

@@ -191,7 +191,6 @@ type autoProvisionArgs struct {
 // the real answer will surface momentarily anyway). Creation failure — hard
 // error; apply must not silently continue into uploadPackage against a
 // bucket that may not exist.
-
 func autoProvisionBackendIfEnabled(ctx context.Context, args autoProvisionArgs) error {
 	defer perf.Track(args.AtmosConfig, "cloudformation.autoProvisionBackendIfEnabled")()
 

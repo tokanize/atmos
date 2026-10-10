@@ -20,6 +20,8 @@ type EnvVarContext interface {
 	GetComponentEnvSection() map[string]any
 }
 
+// ProcessTagEnv resolves !env from component environment settings, then the OS
+// environment, then its default; an unset variable without a default warns and returns empty.
 func ProcessTagEnv(
 	input string,
 	envContext EnvVarContext,

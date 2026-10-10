@@ -447,6 +447,7 @@ var valueOptions = map[string]bool{optionDefault: true, optionQuery: true}
 // includeOptions are the options !include accepts: only the valueless `eval`.
 var includeOptions = map[string]bool{optionEval: true}
 
+// splitOptions separates positional arguments from the default and query options.
 func splitOptions(input string) (string, options, error) {
 	return splitOptionsWith(input, valueOptions)
 }
@@ -471,6 +472,8 @@ func splitOptionsWith(input string, allowed map[string]bool) (string, options, e
 	return input, options{}, nil
 }
 
+// parseOptions reads trailing option clauses, rejecting malformed delimiters
+// and keywords outside the caller-provided option set.
 func parseOptions(input string, tokens []token, firstOption int, allowed map[string]bool) (string, options, error) {
 	head := strings.TrimSpace(input[:tokens[firstOption].position.Offset])
 	result := options{}

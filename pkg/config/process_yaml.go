@@ -489,11 +489,15 @@ func decodeNodeWithYamlFunctions(node *yaml.Node) (any, error) {
 	return decodeNodeWithYamlFunctionsForFile(node, "")
 }
 
+// decodeNodeWithYamlFunctionsForFile evaluates config YAML with source-relative includes
+// and a recursion guard shared by every include in this decoding operation.
 func decodeNodeWithYamlFunctionsForFile(node *yaml.Node, sourceFile string) (any, error) {
 	decoder := configYamlDecoder{includes: make(map[string]bool)}
 	return decoder.decode(node, sourceFile)
 }
 
+// decode dispatches each YAML node to its config evaluator while retaining the
+// source file and active include chain across nested mappings and sequences.
 func (d *configYamlDecoder) decode(node *yaml.Node, sourceFile string) (any, error) {
 	if node == nil {
 		return nil, nil
@@ -516,6 +520,7 @@ func (d *configYamlDecoder) decode(node *yaml.Node, sourceFile string) (any, err
 	}
 }
 
+// decodeMappingNodeWithYamlFunctions evaluates mapping values while preserving key spelling.
 func (d *configYamlDecoder) decodeMappingNodeWithYamlFunctions(node *yaml.Node, sourceFile string) (any, error) {
 	result := make(map[string]interface{}, len(node.Content)/2)
 	for i := 0; i < len(node.Content); i += 2 {
@@ -534,6 +539,7 @@ func (d *configYamlDecoder) decodeMappingNodeWithYamlFunctions(node *yaml.Node, 
 	return result, nil
 }
 
+// decodeSequenceNodeWithYamlFunctions evaluates sequence elements in their original order.
 func (d *configYamlDecoder) decodeSequenceNodeWithYamlFunctions(node *yaml.Node, sourceFile string) (any, error) {
 	result := make([]interface{}, 0, len(node.Content))
 	for _, child := range node.Content {
@@ -546,6 +552,7 @@ func (d *configYamlDecoder) decodeSequenceNodeWithYamlFunctions(node *yaml.Node,
 	return result, nil
 }
 
+// decodeScalarNodeWithYamlFunctions evaluates custom tags and decodes ordinary YAML scalars.
 func (d *configYamlDecoder) decodeScalarNodeWithYamlFunctions(node *yaml.Node, sourceFile string) (any, error) {
 	if hasCustomTag(node.Tag) {
 		return d.processScalarNodeValueForFile(node, sourceFile)
@@ -561,6 +568,8 @@ func decodePlainYamlNode(node *yaml.Node) (any, error) {
 	return value, nil
 }
 
+// processScalarNodeValueForFile resolves includes against the source file when
+// available and delegates other scalar tags to the common config evaluator.
 func (d *configYamlDecoder) processScalarNodeValueForFile(node *yaml.Node, sourceFile string) (any, error) {
 	if sourceFile == "" || !isIncludeTag(node.Tag) {
 		return processScalarNodeValue(node)
@@ -573,6 +582,8 @@ func isIncludeTag(tag string) bool {
 	return tag == u.AtmosYamlFuncInclude || tag == u.AtmosYamlFuncIncludeRaw
 }
 
+// processIncludeNodeValueForFile loads an include and evaluates opted-in YAML
+// before decoding, rejecting repeated or excessively deep active include chains.
 func (d *configYamlDecoder) processIncludeNodeValueForFile(node *yaml.Node, sourceFile string) (any, error) {
 	// Resolve the path against the config file and the project base path, never the working
 	// directory, so the result is the same wherever Atmos runs from.

@@ -63,6 +63,7 @@ func RegisterForeignTagHint(hint ForeignTagHint) {
 	foreignTagHints = append(foreignTagHints, hint)
 }
 
+// lookupForeignTagRewriter reads the registered rewriter for an exact tag under the registry lock.
 func lookupForeignTagRewriter(tag string) (ForeignTagRewriter, bool) {
 	foreignTagMu.RLock()
 	defer foreignTagMu.RUnlock()
@@ -70,6 +71,7 @@ func lookupForeignTagRewriter(tag string) (ForeignTagRewriter, bool) {
 	return rewrite, ok
 }
 
+// lookupForeignTagHint returns the first registered provider's nonempty hints for a tag.
 func lookupForeignTagHint(tag string) []string {
 	foreignTagMu.RLock()
 	defer foreignTagMu.RUnlock()

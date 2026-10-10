@@ -96,6 +96,7 @@ type rainCollector struct {
 	found []string
 }
 
+// add records a directive once, preserving the order in which directives are encountered.
 func (c *rainCollector) add(name string) {
 	if !c.seen[name] {
 		c.seen[name] = true
@@ -103,6 +104,7 @@ func (c *rainCollector) add(name string) {
 	}
 }
 
+// walk collects Rain tags and constant substitutions from a YAML subtree.
 func (c *rainCollector) walk(node *yaml.Node) {
 	if node == nil {
 		return

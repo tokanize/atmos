@@ -33,6 +33,8 @@ func yqLoggerLevel(atmosConfig *schema.AtmosConfiguration) logging.Level {
 	return atmosyq.SilentLevel
 }
 
+// EvaluateYqExpression applies yq to data and decodes the result as Go values,
+// preserving ambiguous scalar strings and returning nil for an empty-string result.
 func EvaluateYqExpression(atmosConfig *schema.AtmosConfiguration, data any, yq string) (any, error) {
 	defer perf.Track(atmosConfig, "utils.EvaluateYqExpression")()
 

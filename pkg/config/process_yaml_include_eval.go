@@ -15,6 +15,8 @@ type configYamlDecoder struct {
 	includes map[string]bool
 }
 
+// evaluateInclude resolves an included subtree using its file context and
+// replaces function tags with plain values to prevent duplicate evaluation.
 func (d *configYamlDecoder) evaluateInclude(node *legacyyaml.Node, sourceFile string) error {
 	// Bridge the two YAML packages without decoding away custom tags first.
 	content, err := legacyyaml.Marshal(node)
