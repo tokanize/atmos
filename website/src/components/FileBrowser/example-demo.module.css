@@ -96,17 +96,6 @@
   color: var(--atmos-terminal-text);
   background: var(--atmos-terminal-header-bg);
 }
-.expanded {
-  position: fixed;
-  inset: 20px;
-  z-index: 2100;
-}
-.expanded:fullscreen {
-  inset: 0;
-}
-.expanded .player {
-  height: calc(100vh - 120px) !important;
-}
 .expanded .player pre {
   font-size: 15px !important;
 }
