@@ -34,9 +34,9 @@ func TestValidateDirectTargetKeys(t *testing.T) {
 		{name: "kind only", targets: map[string]any{"direct": directTarget(nil)}},
 		{name: "auth and packaging", targets: map[string]any{
 			"direct":    directTarget(map[string]any{"auth": map[string]any{"identity": "dev"}, "packaging": "artifacts"}),
-			"artifacts": s3TargetBlock(nil),
+			"artifacts": s3TargetBlock(),
 		}},
-		{name: "s3 target keeps its region", targets: map[string]any{"artifacts": s3TargetBlock(nil)}},
+		{name: "s3 target keeps its region", targets: map[string]any{"artifacts": s3TargetBlock()}},
 		{
 			name:     "region on a direct target",
 			targets:  map[string]any{"direct": directTarget(map[string]any{"region": "us-west-2"})},

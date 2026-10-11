@@ -69,16 +69,7 @@ func Execute(ctx *component.ExecutionContext, operation Operation) error {
 
 // executeSingle runs the operation for a single component (the non-bulk path).
 func executeSingle(ctx *component.ExecutionContext, atmosConfig *schema.AtmosConfiguration, info *schema.ConfigAndStacksInfo, operation Operation) error {
-	// Stack evaluation can read secrets before the CloudFormation client is
-	// authenticated. Bind each lookup lazily to its component/store identity;
-	// never install credentials on a shared configuration or unused backend.
-	localConfig := *atmosConfig
-	atmosConfig = &localConfig
-	if !info.DryRun && !authdeferred.IsDeferred(atmosConfig.AuthManager) {
-		atmosConfig.AuthManager = authdeferred.NewManager(authdeferred.AuthOptions{
-			Config: atmosConfig, Disabled: cfg.NormalizeIdentityValue(info.Identity) == cfg.IdentityFlagDisabledValue,
-		})
-	}
+	atmosConfig = configForComponentExecution(atmosConfig, info)
 	discovered, err := processStacks(atmosConfig, *info, true, !info.DryRun, !info.DryRun, nil, nil)
 	if err != nil {
 		return err
@@ -115,6 +106,20 @@ func executeSingle(ctx *component.ExecutionContext, atmosConfig *schema.AtmosCon
 	}
 
 	return runWithHooks(ctx, atmosConfig, info, operation, spec)
+}
+
+// configForComponentExecution isolates lazy authentication from the shared configuration.
+func configForComponentExecution(atmosConfig *schema.AtmosConfiguration, info *schema.ConfigAndStacksInfo) *schema.AtmosConfiguration {
+	// Stack evaluation can read secrets before the CloudFormation client is
+	// authenticated. Bind each lookup lazily to its component/store identity;
+	// never install credentials on a shared configuration or unused backend.
+	localConfig := *atmosConfig
+	if !info.DryRun && !authdeferred.IsDeferred(localConfig.AuthManager) {
+		localConfig.AuthManager = authdeferred.NewManager(authdeferred.AuthOptions{
+			Config: &localConfig, Disabled: cfg.NormalizeIdentityValue(info.Identity) == cfg.IdentityFlagDisabledValue,
+		})
+	}
+	return &localConfig
 }
 
 // operationsMutatingStack identifies operations that cannot run on locked components.

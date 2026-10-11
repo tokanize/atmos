@@ -212,7 +212,7 @@ func TestExecuteCreateOrUpdate_ResolvesTargetAuthOnce(t *testing.T) {
 			SetConfigInitializer(mockCI)
 			SetProvisioner(&defaultProvisioner{})
 
-			err := executeCreateOrUpdate(t.Context(), createOrUpdateArgs{
+			err := executeCreateOrUpdate(t.Context(), &createOrUpdateArgs{
 				Verb: tt.verb, Component: "vpc", Stack: "dev", AutoApprove: tt.autoApprove,
 			})
 

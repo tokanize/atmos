@@ -44,7 +44,7 @@ var createCmd = &cobra.Command{
 		if !autoApproveProvided {
 			autoApprove = v.GetBool(flagAutoApprove)
 		}
-		return executeCreateOrUpdate(ctx, createOrUpdateArgs{
+		return executeCreateOrUpdate(ctx, &createOrUpdateArgs{
 			Verb:        verbCreate,
 			Component:   result.Component,
 			Stack:       stack,
@@ -108,7 +108,7 @@ type createOrUpdateArgs struct {
 // this prompts for confirmation before doing so, the same way every other
 // mutating verb in this feature (apply, delete, changeset execute, stackset
 // create/update/delete) already does.
-func executeCreateOrUpdate(ctx context.Context, args createOrUpdateArgs) error {
+func executeCreateOrUpdate(ctx context.Context, args *createOrUpdateArgs) error {
 	verb := args.Verb
 	if verb == "" {
 		verb = verbCreate
