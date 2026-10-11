@@ -896,7 +896,7 @@ func TestHTTPHandler_ExpectMismatchExhaustsRetry(t *testing.T) {
 		calls++
 		w.WriteHeader(http.StatusNotFound)
 	}))
-	defer srv.Close()
+	t.Cleanup(srv.Close)
 
 	handler := mustGetHTTPHandler(t)
 	step := &schema.WorkflowStep{
@@ -925,7 +925,7 @@ func TestHTTPHandler_ExpectMismatchExhaustsRetry(t *testing.T) {
 			single++
 			w.WriteHeader(http.StatusNotFound)
 		}))
-		defer one.Close()
+		t.Cleanup(one.Close)
 		step := &schema.WorkflowStep{Name: "once", Type: "http", URL: one.URL, Expect: &schema.HTTPExpect{Status: []int{200}}}
 		require.NoError(t, handler.Validate(step))
 		_, err := handler.Execute(context.Background(), step, NewVariables())
