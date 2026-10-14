@@ -23,6 +23,13 @@ func init() {
 	Register(&PublishHandler{BaseHandler: NewBaseHandler("publish", CategoryCommand, false)})
 }
 
+// KnownFields lists the fields the publish step reads beyond common step settings.
+func (h *PublishHandler) KnownFields() []string {
+	defer perf.Track(nil, "step.PublishHandler.KnownFields")()
+
+	return stepYAMLFields("Source", "Target", "Destination", "Stack")
+}
+
 // Validate checks the fields required for publishing.
 func (h *PublishHandler) Validate(step *schema.WorkflowStep) error {
 	defer perf.Track(nil, "step.PublishHandler.Validate")()
