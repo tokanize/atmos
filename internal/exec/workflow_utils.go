@@ -786,6 +786,7 @@ func ExecuteWorkflow(
 		// One option set for every extended-step call below so toolchain PATH and the
 		// auth manager are never dropped on any dispatch path.
 		extendedOpts := extendedStepOptions{
+			Identity:      stepIdentity,
 			DryRun:        dryRun,
 			FinalStack:    finalStack,
 			AtmosConfig:   &atmosConfig,
