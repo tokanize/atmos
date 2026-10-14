@@ -347,7 +347,7 @@ func processTemplatesInSection(atmosConfig *schema.AtmosConfiguration, section m
 	// Use ignoreMissingTemplateValues=false so templates with missing values fail
 	// (e.g., {{ .atmos_component }} when component context isn't available yet).
 	// The caller will fall back to raw values, preserving templates for later processing.
-	processed, err := processTmpl(atmosConfig, tmplInput{name: filePath, value: yamlStr, data: context, manifestLoadFile: filePath})
+	processed, err := processTmpl(atmosConfig, &tmplInput{name: filePath, value: yamlStr, data: context, manifestLoadFile: filePath})
 	if err != nil {
 		return nil, stderrors.Join(errUtils.ErrInvalidStackManifest, fmt.Errorf("failed to process templates in section: %w", err))
 	}
@@ -1222,7 +1222,7 @@ func processYAMLConfigFileWithContextInternal(
 		}
 
 		var tmplErr error
-		stackManifestTemplatesProcessed, tmplErr = processTmpl(atmosConfig, tmplInput{name: relativeFilePath, value: stackManifestTemplateInput, data: context, ignoreMissing: ignoreMissingTemplateValues, manifestLoadFile: relativeFilePath})
+		stackManifestTemplatesProcessed, tmplErr = processTmpl(atmosConfig, &tmplInput{name: relativeFilePath, value: stackManifestTemplateInput, data: context, ignoreMissing: ignoreMissingTemplateValues, manifestLoadFile: relativeFilePath})
 		if tmplErr != nil {
 			// If template processing failed and the only context is from file extraction
 			// (locals/settings/vars/env, not from an explicit import context), this is likely
@@ -1979,7 +1979,7 @@ func renderImportPath(
 		tmplData = merged
 	}
 
-	rendered, err := processTmpl(atmosConfig, tmplInput{
+	rendered, err := processTmpl(atmosConfig, &tmplInput{
 		name:                  fmt.Sprintf("import-path(%s)", relativeFilePath),
 		value:                 imp,
 		data:                  tmplData,

@@ -419,7 +419,7 @@ func TestProcessTmpl_ManifestLoad(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := processTmpl(atmosConfig, tmplInput{name: "deploy/x.yaml", value: tt.input, data: tmplCtx, manifestLoadFile: "deploy/x.yaml"})
+			got, err := processTmpl(atmosConfig, &tmplInput{name: "deploy/x.yaml", value: tt.input, data: tmplCtx, manifestLoadFile: "deploy/x.yaml"})
 
 			if tt.wantErrIs != nil {
 				require.Error(t, err)

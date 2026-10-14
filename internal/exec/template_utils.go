@@ -63,7 +63,7 @@ func ProcessTmpl(
 ) (rendered string, renderErr error) {
 	defer perf.Track(atmosConfig, "exec.ProcessTmpl")()
 
-	return processTmpl(atmosConfig, tmplInput{name: tmplName, value: tmplValue, data: tmplData, ignoreMissing: ignoreMissingTemplateValues})
+	return processTmpl(atmosConfig, &tmplInput{name: tmplName, value: tmplValue, data: tmplData, ignoreMissing: ignoreMissingTemplateValues})
 }
 
 // tmplInput describes a template to render with processTmpl.
@@ -107,35 +107,21 @@ func manifestLoadOnlyContextKeys(tmplData any) []string {
 
 // processTmpl parses and executes Go templates. A non-empty in.manifestLoadFile selects the
 // manifest-load behavior.
-func processTmpl(atmosConfig *schema.AtmosConfiguration, in tmplInput) (rendered string, renderErr error) {
+func processTmpl(atmosConfig *schema.AtmosConfiguration, in *tmplInput) (rendered string, renderErr error) {
 	protectedSource, restoreSource, protectErr := starlarksource.Protect(in.value, in.name)
 	if protectErr != nil {
 		return "", protectErr
 	}
-	in.value = protectedSource
 	defer func() {
 		if renderErr == nil {
 			rendered = restoreSource(rendered)
 		}
 	}()
 
-	d := data.Data{}
-	ctx := context.TODO()
-
 	// Add Gomplate, Sprig and Atmos template functions.
-	tmplConfig := atmosConfig
-	if tmplConfig == nil {
-		tmplConfig = &schema.AtmosConfiguration{}
-	}
-	var atmosFuncMap template.FuncMap
-	if in.manifestLoadFile != "" {
-		atmosFuncMap = manifestLoadFuncMap(tmplConfig, &schema.ConfigAndStacksInfo{}, ctx, &d, in.manifestLoadFile)
-	} else {
-		atmosFuncMap = FuncMap(tmplConfig, &schema.ConfigAndStacksInfo{}, ctx, &d)
-	}
-	funcs := lo.Assign(gomplate.CreateFuncs(ctx, &d), getSprigFuncMap(), atmosFuncMap)
+	funcs := buildTemplateFuncMap(atmosConfig, in.manifestLoadFile)
 
-	t, err := template.New(in.name).Funcs(funcs).Parse(in.value)
+	t, err := template.New(in.name).Funcs(funcs).Parse(protectedSource)
 	if err != nil {
 		return "", err
 	}
@@ -172,6 +158,23 @@ func processTmpl(atmosConfig *schema.AtmosConfiguration, in tmplInput) (rendered
 	}
 
 	return res.String(), nil
+}
+
+// buildTemplateFuncMap combines template functions with the appropriate manifest-load guard.
+func buildTemplateFuncMap(atmosConfig *schema.AtmosConfiguration, manifestLoadFile string) template.FuncMap {
+	d := data.Data{}
+	ctx := context.TODO()
+	tmplConfig := atmosConfig
+	if tmplConfig == nil {
+		tmplConfig = &schema.AtmosConfiguration{}
+	}
+	var atmosFuncMap template.FuncMap
+	if manifestLoadFile != "" {
+		atmosFuncMap = manifestLoadFuncMap(tmplConfig, &schema.ConfigAndStacksInfo{}, ctx, &d, manifestLoadFile)
+	} else {
+		atmosFuncMap = FuncMap(tmplConfig, &schema.ConfigAndStacksInfo{}, ctx, &d)
+	}
+	return lo.Assign(gomplate.CreateFuncs(ctx, &d), getSprigFuncMap(), atmosFuncMap)
 }
 
 // convertRawEnvToStringMap converts a raw env value (any) to map[string]string.

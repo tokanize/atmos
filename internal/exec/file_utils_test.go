@@ -391,9 +391,9 @@ func TestPrintOrWriteToFile_ScalarResults(t *testing.T) {
 		expectedYAML string
 		expectedJSON string
 	}{
-		{"string with leading zero", "068007702576", "068007702576\n", "\"068007702576\"\n"},
-		{"numeric-looking string", "123456789012", "123456789012\n", "\"123456789012\"\n"},
-		{"bool-looking string", "true", "true\n", "\"true\"\n"},
+		{"string with leading zero", "068007702576", "\"068007702576\"\n", "\"068007702576\"\n"},
+		{"numeric-looking string", "123456789012", "\"123456789012\"\n", "\"123456789012\"\n"},
+		{"bool-looking string", "true", "\"true\"\n", "\"true\"\n"},
 		{"plain string", "dev", "dev\n", "\"dev\"\n"},
 		{"integer", 123456789012, "123456789012\n", "123456789012\n"},
 		{"max int64", int64(9223372036854775807), "9223372036854775807\n", "9223372036854775807\n"},
@@ -437,8 +437,12 @@ func TestPrintOrWriteToFile_ScalarResults(t *testing.T) {
 					printErr = printOrWriteToFile(atmosConfig, format, "", tt.data)
 				})
 				require.NoError(t, printErr)
-				// The YAML printer terminates every printed document with an extra newline.
+				// Files preserve YAML scalar types; display output prints string results verbatim.
 				if format == "yaml" {
+					if value, ok := tt.data.(string); ok {
+						expected = value + "\n"
+					}
+					// The YAML printer terminates every result with an extra newline.
 					expected += "\n"
 				}
 				assert.Equal(t, expected, out)
