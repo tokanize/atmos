@@ -152,7 +152,7 @@ func componentFunc(
 		}
 		// The deployment target may use a different principal from the component.
 		// Resolve it before cache access so failed auth never serves stale outputs.
-		cacheKey.Auth = refcache.AuthScope(authContext, resolvedAuthMgr, authDisabled)
+		cacheKey.Auth = refcache.AuthScope(authContext, nil, authDisabled)
 		cacheKind += "-" + authCacheKeySuffix(authContext)
 	}
 	if cached, ok := valueCache.Load(cacheKind); ok {
