@@ -86,7 +86,9 @@ func walkYAMLTags(ctx TagContext, node *yaml.Node, policy TagWalkPolicy) error {
 		return walkYAMLTags(ctx, n, policy)
 	}
 	ctx.WalkIn = func(n *yaml.Node, inFile string) error {
-		return WalkYAMLTags(atmosConfig, n, inFile, policy)
+		included := ctx
+		included.File = inFile
+		return walkYAMLTags(included, n, policy)
 	}
 
 	var after func()
@@ -118,6 +120,11 @@ func childTagContext(ctx TagContext, parent *yaml.Node, index int, policy TagWal
 	child.parent = parent
 	child.dataSection = ctx.dataSection || isScriptSourceDataValue(parent, index)
 	child.Walk = func(value *yaml.Node) error { return walkYAMLTags(child, value, policy) }
+	child.WalkIn = func(value *yaml.Node, file string) error {
+		included := child
+		included.File = file
+		return walkYAMLTags(included, value, policy)
+	}
 	return child
 }
 
