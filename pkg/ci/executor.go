@@ -230,7 +230,10 @@ func configuredPlanfileStore(opts *ExecuteOptions, config *schema.PlanfilesConfi
 		storeOpts := artifact.StoreOptions{Type: spec.Type, Options: spec.Options}
 		attachIdentity(&storeOpts, opts.Info)
 		stores[name] = storeOpts
-		checkers[name] = planfileEnvironmentChecker{options: storeOpts}
+		checkers[name] = planfileEnvironmentChecker{
+			options:       storeOpts,
+			requireUpload: extractEventPrefix(opts.Event) == "after" && extractCommand(opts.Event) == "plan",
+		}
 	}
 	backend, err := artifact.SelectStore(context.Background(), config.Priority, stores, checkers, config.Default, opts.AtmosConfig)
 	if err != nil {
