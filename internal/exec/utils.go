@@ -862,8 +862,18 @@ func newManifestPresenceProbe(
 		probeInfo.ComponentType = componentType
 
 		if atmosConfig.StackType == "Directory" {
+			// Missing type/component sections are expected while probing other types.
+			// Once a definition exists, preserve all processing errors instead of
+			// silently selecting another type with the same component name.
+			if stackSection, ok := stacksMap[probeInfo.Stack].(map[string]any); ok {
+				components, _ := stackSection["components"].(map[string]any)
+				componentTypeSection, _ := components[componentType].(map[string]any)
+				if _, found := componentTypeSection[probeInfo.ComponentFromArg].(map[string]any); !found {
+					return false, nil
+				}
+			}
 			err := processComponentConfig(atmosConfig, &probeInfo, probeInfo.Stack, stacksMap, deferredContexts, componentType, probeInfo.ComponentFromArg, authManager)
-			return err == nil, nil
+			return err == nil, err
 		}
 
 		search := &componentSearch{atmosConfig: atmosConfig, stacksMap: stacksMap, deferredContexts: deferredContexts, authManager: authManager}
