@@ -54,7 +54,7 @@ func TestLocalPublishOpenRejectsReplacementAfterPathCheck(t *testing.T) {
 			require.ErrorIs(t, err, errUtils.ErrPublishSource)
 			require.Nil(t, reader)
 			require.NotNil(t, opened)
-			_, err = opened.Stat()
+			err = opened.Close()
 			require.ErrorIs(t, err, os.ErrClosed, "rejected source handles must be closed")
 		})
 	}
