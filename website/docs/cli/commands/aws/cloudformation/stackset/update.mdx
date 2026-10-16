@@ -84,6 +84,10 @@ atmos aws cloudformation stackset update --affected --base origin/main
 
 ## Behavior
 
+Atmos creates instances during [`stackset create`](/cli/commands/aws/cloudformation/stackset/create)
+and has no command to add instances to an existing StackSet. To add instances later,
+use the [AWS CloudFormation console or AWS CLI](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stackinstances-create.html).
+
 The `UpdateStackSet` operation is polled every 3 seconds until it reaches a
 terminal status (`SUCCEEDED`/`FAILED`/`STOPPED`), and the command times out
 after 30 minutes if it hasn't.

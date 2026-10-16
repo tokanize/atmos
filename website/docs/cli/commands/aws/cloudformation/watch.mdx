@@ -66,6 +66,8 @@ atmos aws cloudformation watch --affected --base origin/main
 
 ## Behavior
 
+With bulk selection, `--stack` is an optional filter. Omit it to select components across stacks.
+
 If the stack ends in a failed status, `watch` exits non-zero, the same
 failure signal `apply`/`delete` give when the operation they started fails.
 
