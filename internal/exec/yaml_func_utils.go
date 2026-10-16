@@ -326,10 +326,14 @@ func processContextAwareTags(
 // secretSelectorEvaluator lets `!secret` resolve a declaration's `store:`/`sops:` YAML-function
 // selector (for example `!aws.cloudformation.output ...`) with the same evaluator and processing
 // context that is walking the component. It only evaluates the selector value it is handed.
-func secretSelectorEvaluator(atmosConfig *schema.AtmosConfiguration, currentStack string, stackInfo *schema.ConfigAndStacksInfo) secrets.SelectorEvaluator {
+func secretSelectorEvaluator(atmosConfig *schema.AtmosConfiguration, currentStack string, skip []string, resolutionCtx *ResolutionContext, stackInfo *schema.ConfigAndStacksInfo) secrets.SelectorEvaluator {
 	const key = "selector"
 	return func(_ []string, raw any) (any, error) {
-		evaluated, err := processNodesWithContext(atmosConfig, map[string]any{key: raw}, currentStack, nil, GetOrCreateResolutionContext(), stackInfo, nil)
+		ctx := resolutionCtx
+		if ctx == nil {
+			ctx = GetOrCreateResolutionContext()
+		}
+		evaluated, err := processNodesWithContext(atmosConfig, map[string]any{key: raw}, currentStack, skip, ctx, stackInfo, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -337,13 +341,14 @@ func secretSelectorEvaluator(atmosConfig *schema.AtmosConfiguration, currentStac
 	}
 }
 
-// processSimpleTags processes tags that don't need cycle detection.
+// processSimpleTags preserves the caller context for nested secret selectors.
 // Returns (result, handled, error) where handled indicates if a matching tag was found.
 func processSimpleTags(
 	atmosConfig *schema.AtmosConfiguration,
 	input string,
 	currentStack string,
 	skip []string,
+	resolutionCtx *ResolutionContext,
 	stackInfo *schema.ConfigAndStacksInfo,
 ) (any, bool, error) {
 	// Handle !unset tag - return marker to indicate value should be deleted.
@@ -362,7 +367,7 @@ func processSimpleTags(
 	}
 	if matchesPrefix(input, u.AtmosYamlFuncSecret, skip) {
 		res, err := secretdeferred.NewValue(atmosConfig, input, currentStack, stackInfo,
-			secrets.WithSelectorEvaluator(secretSelectorEvaluator(atmosConfig, currentStack, stackInfo))).Resolve()
+			secrets.WithSelectorEvaluator(secretSelectorEvaluator(atmosConfig, currentStack, skip, resolutionCtx, stackInfo))).Resolve()
 		if err != nil {
 			return nil, true, err
 		}
@@ -550,7 +555,7 @@ func processCustomTagsWithContext(
 	}
 
 	// Try simple tags.
-	if result, handled, err := processSimpleTags(atmosConfig, input, currentStack, skip, stackInfo); handled {
+	if result, handled, err := processSimpleTags(atmosConfig, input, currentStack, skip, resolutionCtx, stackInfo); handled {
 		return result, err
 	}
 
