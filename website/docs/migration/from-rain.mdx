@@ -387,6 +387,37 @@ changeset for later execution.
 Move shared configuration into a catalog component and inherit it in each
 stack. See [Component Inheritance](/howto/inheritance).
 
+<File title="stacks/catalog/vpc-defaults.yaml">
+```yaml
+components:
+  "aws/cloudformation":
+    vpc-defaults:
+      metadata:
+        type: abstract
+      capabilities:
+        - CAPABILITY_IAM
+```
+</File>
+
+<File title="stacks/deploy/dev.yaml">
+```yaml
+import:
+  - catalog/vpc-defaults
+
+components:
+  "aws/cloudformation":
+    vpc:
+      metadata:
+        component: vpc
+        inherits:
+          - vpc-defaults
+      path: template.yaml
+      parameters:
+        CidrBlock: "10.0.0.0/16"
+```
+</File>
+
+
 ## Migration Benefits {#why-its-worth-it}
 
 ### Shared Deployment Configuration {#real-benefits-youll-feel-immediately}
