@@ -81,12 +81,11 @@ var operationHelpBySubCommand = map[string]operationHelpEntry{
 			"  atmos aws cloudformation watch --all --stack plat-ue2-dev",
 	},
 	"render": {
-		long: "Render the component's inline `template:` or file-based `path:` template --\n" +
-			"JIT-provisioning `source:` first when it is set -- without deploying or\n" +
-			"validating it through the CloudFormation API. Local or already-provisioned\n" +
-			"sources render offline without AWS credentials, but source provisioning and\n" +
-			"configured secret or output lookups can still require authentication and\n" +
-			"network access.",
+		long: "Render the component's template, JIT-provisioning `source:` first when set,\n" +
+			"without deploying or validating it through the CloudFormation API.\n" +
+			"Local or already-provisioned sources render offline without AWS credentials,\n" +
+			"but source provisioning and configured secret or output lookups can still\n" +
+			"require authentication and network access.",
 		example: "  atmos aws cloudformation render vpc --stack plat-ue2-dev\n" +
 			"  atmos aws cloudformation render --all --stack plat-ue2-dev\n" +
 			"  atmos aws cloudformation render --affected --base origin/main",
