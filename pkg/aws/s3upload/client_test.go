@@ -96,3 +96,53 @@ func TestClientRejectsIncompleteCredentialsAndInvalidConfig(t *testing.T) {
 	_, err := NewClient(t.Context(), "", nil, map[string]string{"AWS_CONFIG_FILE": configFile, "AWS_PROFILE": "broken"})
 	require.ErrorIs(t, err, errUtils.ErrLoadAWSConfig)
 }
+
+func TestResolveEndpointWithComponentIdentity(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		auth *schema.AWSAuthContext
+		env  map[string]string
+		want string
+	}{
+		{name: "component endpoint", auth: &schema.AWSAuthContext{EndpointURL: "https://component.example"}, env: map[string]string{"AWS_ENDPOINT_URL_S3": "https://service.example", "AWS_ENDPOINT_URL": "https://global.example"}, want: "https://component.example"},
+		{name: "service fallback", auth: &schema.AWSAuthContext{}, env: map[string]string{"AWS_ENDPOINT_URL_S3": "https://service.example", "AWS_ENDPOINT_URL": "https://global.example"}, want: "https://service.example"},
+		{name: "global fallback", auth: &schema.AWSAuthContext{}, env: map[string]string{"AWS_ENDPOINT_URL": "https://global.example"}, want: "https://global.example"},
+		{name: "SDK default", auth: &schema.AWSAuthContext{}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, resolveEndpoint(tc.auth, tc.env))
+		})
+	}
+}
+
+// A component identity chooses credentials independently of a workflow step's endpoint.
+func TestClientComponentIdentityUsesStepEndpoint(t *testing.T) {
+	for _, endpointKey := range []string{"AWS_ENDPOINT_URL_S3", "AWS_ENDPOINT_URL"} {
+		t.Run(endpointKey, func(t *testing.T) {
+			credentialsFile := filepath.Join(t.TempDir(), "credentials")
+			require.NoError(t, os.WriteFile(credentialsFile, []byte("[component]\naws_access_key_id = component-key\naws_secret_access_key = component-secret\n"), 0o600))
+			var requests int
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				requests++
+				assert.Contains(t, r.Header.Get("Authorization"), "Credential=component-key/")
+				assert.Equal(t, "/bucket/key", r.URL.Path)
+				w.WriteHeader(http.StatusOK)
+			}))
+			defer server.Close()
+			authContext := &schema.AWSAuthContext{CredentialsFile: credentialsFile, ConfigFile: filepath.Join(t.TempDir(), "config"), Profile: "component", Region: "us-west-2"}
+			env := map[string]string{endpointKey: server.URL, "AWS_ACCESS_KEY_ID": "step-key", "AWS_SECRET_ACCESS_KEY": "step-secret"}
+			if endpointKey == "AWS_ENDPOINT_URL_S3" {
+				env["AWS_ENDPOINT_URL"] = "http://127.0.0.1:1"
+			}
+			client, err := NewClient(t.Context(), "", authContext, env)
+			require.NoError(t, err)
+			// Fail before making any request if the endpoint was discarded.
+			sdkClient, ok := client.(*s3.Client)
+			require.True(t, ok)
+			require.Equal(t, server.URL, aws.ToString(sdkClient.Options().BaseEndpoint))
+			_, err = client.HeadObject(t.Context(), &s3.HeadObjectInput{Bucket: aws.String("bucket"), Key: aws.String("key")})
+			require.NoError(t, err)
+			assert.Equal(t, 1, requests)
+		})
+	}
+}

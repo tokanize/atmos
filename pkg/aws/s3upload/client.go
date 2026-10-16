@@ -49,7 +49,7 @@ func applyStaticCredentials(cfg *aws.Config, env map[string]string) error {
 }
 
 func resolveEndpoint(authContext *schema.AWSAuthContext, env map[string]string) string {
-	if authContext != nil {
+	if authContext != nil && authContext.EndpointURL != "" {
 		return authContext.EndpointURL
 	}
 	if endpoint := env["AWS_ENDPOINT_URL_S3"]; endpoint != "" {
