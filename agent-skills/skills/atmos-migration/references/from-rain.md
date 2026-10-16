@@ -34,8 +34,9 @@ and `website/docs/stacks/components/aws-cloudformation.mdx` for the stack-config
     intrinsics (`!Ref`, `!Sub`, `!GetAtt`, all 18) and rewrite them to long form; do not hand-convert
     to `Ref:`/`Fn::GetAtt:`.
   - `!include <file> | eval` (opt-in) evaluates Atmos YAML functions (`!env`, nested `!include`)
-    inside the included file. Without `| eval`, included content is data: tags are dropped and the
-    argument kept.
+    inside the included file. Without `| eval`, Atmos YAML-function tags are dropped and their
+    arguments kept as data. CloudFormation intrinsics such as `!Ref` are still rewritten to
+    long form; they do not require `| eval`.
 2. **Reuse templates and parameter files.** Point `path:` at the existing `.yaml`/`.json`
   template file unchanged (after resolving any `!Rain::` directives per the table below).
   Atmos `parameters:` accepts a map from parameter names to values, or a list of AWS CLI
